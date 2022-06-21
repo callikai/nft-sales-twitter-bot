@@ -8,8 +8,10 @@ const _ = require("lodash");
 const { markets } = require("./markets.js");
 const { currencies } = require("./currencies.js");
 const { transferEventTypes, saleEventTypes } = require("./log_event_types.js");
-const { tweet } = require("./tweet");
+//const { tweet } = require("./tweet");
 const abi = require("./abi.json");
+
+let CONTRACT_ADDRESS = process.env.CONTRACT_ADDRESS || '0xBC4CA0EdA7647A8aB7C2061c2E118A18a936f13D'
 
 // connect to Alchemy websocket
 const web3 = createAlchemyWeb3(
@@ -20,7 +22,7 @@ const web3 = createAlchemyWeb3(
 let lastTransactionHash;
 
 async function monitorContract() {
-  const contract = new web3.eth.Contract(abi, process.env.CONTRACT_ADDRESS);
+  const contract = new web3.eth.Contract(abi, CONTRACT_ADDRESS);
 
   contract.events
     .Transfer({})
@@ -28,6 +30,7 @@ async function monitorContract() {
       console.log(subscriptionId);
     })
     .on("data", async (data) => {
+      console.log("data")
       const transactionHash = data.transactionHash.toLowerCase();
 
       // duplicate transaction - skip process
@@ -148,7 +151,7 @@ async function monitorContract() {
       const tokenData = await getTokenData(tokens[0]);
 
       // if more than one asset sold, link directly to etherscan tx, otherwise the marketplace item
-      if (tokens.length > 1) {
+/*       if (tokens.length > 1) {
         tweet(
           `${_.get(
             tokenData,
@@ -166,9 +169,9 @@ async function monitorContract() {
             `#` + tokens[0]
           )} bought for ${totalPrice} ${currency.name} on ${market.name} ${
             market.site
-          }${process.env.CONTRACT_ADDRESS}/${tokens[0]}`
+          }${CONTRACT_ADDRESS}/${tokens[0]}`
         );
-      }
+      } */
     })
     .on("changed", (event) => {
       console.log("change");
@@ -184,7 +187,7 @@ async function getTokenData(tokenId) {
   try {
     // retrieve metadata for asset from opensea
     const response = await axios.get(
-      `https://api.opensea.io/api/v1/asset/${process.env.CONTRACT_ADDRESS}/${tokenId}`,
+      `https://api.opensea.io/api/v1/asset/${CONTRACT_ADDRESS}/${tokenId}`,
       {
         headers: {
           "X-API-KEY": process.env.X_API_KEY,
@@ -210,3 +213,7 @@ async function getTokenData(tokenId) {
 
 // initate websocket connection
 monitorContract();
+
+module.exports = {
+  monitorContract,
+};
